@@ -5,6 +5,20 @@ import time
 
 
 
+###################
+# Function Description:
+# Sends the messages to the peers
+###################
+def send_message_to_peers(message):
+    with peer_lock:
+        for peer_socket in peer_sockets:
+            try:
+                peer_socket.send(message.encode())
+            # In case of error, remove the peer socket from the list
+            except Exception as e:
+                print(f"Error sending message: {e}")
+                peer_sockets.remove(peer_socket)
+                peer_socket.close()
 
 
 ###################
