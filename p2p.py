@@ -2,6 +2,16 @@ import socket
 import threading
 import time
 
+# Dictionary used to view and store peers' addresses
+# so that hopefully the peers can find each other
+peers = []
+
+# Channel the user joins
+current_channel = None
+
+# Thread-safe storage for connected peers' sockets
+peer_sockets = []
+peer_lock = threading.Lock()
 
 
 
