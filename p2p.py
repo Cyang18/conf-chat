@@ -12,6 +12,31 @@ current_channel = None
 # Thread-safe storage for connected peers' sockets
 peer_sockets = []
 peer_lock = threading.Lock()
+###################
+# Function description:
+# This function runs in a separate thread and listens for incoming messages
+# on a connected peer socket. And whenever a message is received, it will print the message
+# to the terminal.
+###################
+def handle_incoming_messages(peer_socket):
+    while True:
+        try:
+            message = peer_socket.recv(1024).decode()
+            if message:
+                print(f"New message: {message}")
+            else:
+                print("Peer disconnected")
+                break
+        except Exception as e:
+            print(f"Error receiving message: {e}")
+            break
+
+    # Close the socket communcation when error in the connection
+    # or when the communcation ends between the peers
+    with peer_lock:
+        peer_sockets.remove(peer_socket)
+    peer_socket.close()
+
 
 
 
