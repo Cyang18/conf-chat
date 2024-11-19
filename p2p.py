@@ -37,6 +37,33 @@ def handle_incoming_messages(peer_socket):
         peer_sockets.remove(peer_socket)
     peer_socket.close()
 
+####################
+# Function description:
+# Tries to connect to a peer at a specified address (hostname, port).
+# If the connection fails, it retries the connection a specified number of times
+# before giving up.
+###################
+def connect_to_peer(peer_address, retries=3):
+    for attempt in range(retries):
+        try:
+            peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            peer_socket.connect(peer_address)
+            print(f"Connected to {peer_address}")
+            # Add to peer list thread-safely
+            with peer_lock:
+                peer_sockets.append(peer_socket)
+            threading.Thread(target=handle_incoming_messages, args=(peer_socket,), daemon=True).start()
+            return peer_socket
+
+        except ConnectionRefusedError:
+            print(f"Connection to {peer_address} failed. Retrying... ({attempt + 1}/{retries})")
+            time.sleep(3)
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            break
+
+    print(f"Failed to connect to {peer_address} after {retries} attempts.")
+    return None
 
 
 
