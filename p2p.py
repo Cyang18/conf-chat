@@ -65,6 +65,32 @@ def connect_to_peer(peer_address, retries=3):
     print(f"Failed to connect to {peer_address} after {retries} attempts.")
     return None
 
+###################
+#  Function description:
+#  Creates a server socket and listens for incoming peer connections.
+#  Whenever a new peer connects, a new thread is created to handle messages from that peer.
+###################
+def listen_for_peers(port=1000):
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # try to listen to an the main port,
+    try:
+        server.bind(('0.0.0.0', port))  # Listen on the given port
+        server.listen(5)
+
+    # IF the port is full or not there go to the next port if the current one is occupied
+    except OSError:
+        #print(f"{port} in use")
+        return listen_for_peers(port + 1)
+
+    # Add ghe peer to the list if a peer is found
+    while True:
+        peer_socket, peer_address = server.accept()
+        print(f"Connection from {peer_address}")
+        with peer_lock:
+            peer_sockets.append(peer_socket)
+        threading.Thread(target=handle_incoming_messages, args=(peer_socket,), daemon=True).start()
+
 
 
 ###################
