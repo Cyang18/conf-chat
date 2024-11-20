@@ -12,44 +12,63 @@ current_channel = None
 # Thread-safe storage for connected peers' sockets
 peer_sockets = []
 peer_lock = threading.Lock()
+
+# Global password
+chat_password = None
 ###################
 # Function description:
 # This function runs in a separate thread and listens for incoming messages
-# on a connected peer socket. And whenever a message is received, it will print the message
-# to the terminal.
+# on a connected peer socket. If the password is valid, it processes messages.
 ###################
 def handle_incoming_messages(peer_socket):
-    while True:
-        try:
+    try:
+        # Verify password
+        received_password = peer_socket.recv(1024).decode()
+        if received_password != chat_password:
+            print("Peer failed password authentication. Disconnecting...")
+            peer_socket.close()
+            return
+
+        # Notify successful connection
+        peer_socket.send("AUTH_SUCCESS".encode())
+        print("Peer authenticated successfully.")
+
+        # Handle incoming messages
+        while True:
             message = peer_socket.recv(1024).decode()
             if message:
                 print(f"New message: {message}")
             else:
                 print("Peer disconnected")
                 break
-        except Exception as e:
-            print(f"Error receiving message: {e}")
-            break
+    except Exception as e:
+        print(f"Error receiving message: {e}")
 
-    # Close the socket communcation when error in the connection
-    # or when the communcation ends between the peers
+    # Close the socket communication when an error occurs or communication ends
     with peer_lock:
         peer_sockets.remove(peer_socket)
     peer_socket.close()
 
-####################
+
+###################
 # Function description:
-# Tries to connect to a peer at a specified address (hostname, port).
-# If the connection fails, it retries the connection a specified number of times
-# before giving up.
+# Tries to connect to a peer at a specified address (hostname, port) with password validation.
 ###################
 def connect_to_peer(peer_address, retries=3):
     for attempt in range(retries):
         try:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             peer_socket.connect(peer_address)
-            print(f"Connected to {peer_address}")
-            # Add to peer list thread-safely
+
+            # Send password for authentication
+            peer_socket.send(chat_password.encode())
+            auth_response = peer_socket.recv(1024).decode()
+            if auth_response != "AUTH_SUCCESS":
+                print("Peer rejected connection due to password mismatch.")
+                peer_socket.close()
+                return None
+
+            print(f"Connected and authenticated with {peer_address}")
             with peer_lock:
                 peer_sockets.append(peer_socket)
             threading.Thread(target=handle_incoming_messages, args=(peer_socket,), daemon=True).start()
@@ -66,30 +85,29 @@ def connect_to_peer(peer_address, retries=3):
     return None
 
 ###################
-#  Function description:
-#  Creates a server socket and listens for incoming peer connections.
-#  Whenever a new peer connects, a new thread is created to handle messages from that peer.
+# Function description:
+# Listen for incoming connections and validate passwords.
 ###################
 def listen_for_peers(port=1000):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # try to listen to an the main port,
+    # Try to listen on the main port
     try:
         server.bind(('0.0.0.0', port))  # Listen on the given port
         server.listen(5)
-
-    # IF the port is full or not there go to the next port if the current one is occupied
     except OSError:
-        #print(f"{port} in use")
+        # If the port is occupied, try the next port
         return listen_for_peers(port + 1)
 
-    # Add ghe peer to the list if a peer is found
+    print(f"Listening for peers on port {port}...")
+
     while True:
         peer_socket, peer_address = server.accept()
-        print(f"Connection from {peer_address}")
-        with peer_lock:
-            peer_sockets.append(peer_socket)
+        print(f"Connection attempt from {peer_address}")
+
+        # Handle the connection in a separate thread
         threading.Thread(target=handle_incoming_messages, args=(peer_socket,), daemon=True).start()
+
 
 
 
@@ -110,10 +128,16 @@ def send_message_to_peers(message):
 
 
 ###################
+###################
 # Function description:
-# Connecting to the peers
+# Starts the chat system.
 ###################
 def start_chat():
+    global chat_password
+
+    print("Set a password for this chat:")
+    chat_password = input("Password: ").strip()
+
     print("Enter your username:")
     username = input().strip()
 
@@ -122,26 +146,31 @@ def start_chat():
     for peer_address in peers:
         peer_socket = connect_to_peer(peer_address)
         if peer_socket:
-            #print(peer_address)
             print(f"Connected to peer at {peer_address}")
 
-    # if the peers are connected begin the comm. with the peers
+    # If the peers are connected, begin communication
     while True:
         message = input(f"{username}: ")
         if message.lower() == 'exit':
             print(f"{username} has left the chat.")
             break
 
-        # add a if statement here maybe to allow the user to change their name.
+        # Add an option to rename
         if message.lower() == 'rename':
-            break
+            print("Enter new username:")
+            username = input().strip()
+            continue
+
         send_message_to_peers(f"{username}: {message}\n")
 
-# main:
-def main():
 
+###################
+# Main function to start the chat application.
+###################
+def main():
     global peers
-    # use case testing find to other peers.
+
+    # Use case testing two find other peers
     peers = [('localhost', 1001), ('localhost', 1002)]
     threading.Thread(target=listen_for_peers, daemon=True).start()
     start_chat()
