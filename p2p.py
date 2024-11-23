@@ -173,6 +173,7 @@ def main():
     # Use case testing two find other peers
     peers = [('localhost', 1001), ('localhost', 1002)]
     threading.Thread(target=listen_for_peers, daemon=True).start()
+    time.sleep(2)
     start_chat()
 
 
