@@ -170,8 +170,8 @@ def start_chat():
 def main():
     global peers
 
-    # Use case testing two find other peers
-    peers = [('localhost', 1001), ('localhost', 1002)]
+    # limits to only 4 peers in comm.
+    peers = [(('localhost', 1002),'localhost', 1001), ('localhost', 1002), ('localhost', 1003)]
     threading.Thread(target=listen_for_peers, daemon=True).start()
     time.sleep(2)
     start_chat()
