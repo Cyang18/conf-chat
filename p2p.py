@@ -2,44 +2,35 @@ import socket
 import threading
 import time
 
-# Dictionary used to view and store peers' addresses
-# so that hopefully the peers can find each other
-peers = []
-
-# Channel the user joins
-current_channel = None
+# Dictionary to store the username and their corresponding peer socket
+peer_usernames = {}
 
 # Thread-safe storage for connected peers' sockets
 peer_sockets = []
 peer_lock = threading.Lock()
 
-# Global password
-chat_password = None
 ###################
 # Function description:
 # This function runs in a separate thread and listens for incoming messages
-# on a connected peer socket. If the password is valid, it processes messages.
+# on a connected peer socket.
 ###################
 def handle_incoming_messages(peer_socket):
     try:
-        # Verify password
-        received_password = peer_socket.recv(1024).decode()
-        if received_password != chat_password:
-            print("Peer failed password authentication. Disconnecting...")
-            peer_socket.close()
-            return
-
-        # Notify successful connection
-        peer_socket.send("AUTH_SUCCESS".encode())
-        print("Peer authenticated successfully.")
-
+        # Receive and register the peer's username
+        username = peer_socket.recv(1024).decode()  # Receiving username
+        print(f"Peer {username} has joined the chat.")
+        
+        # Store the peer's socket in the peer_usernames dictionary
+        with peer_lock:
+            peer_usernames[peer_socket] = username
+        
         # Handle incoming messages
         while True:
             message = peer_socket.recv(1024).decode()
             if message:
-                print(f"New message: {message}")
+                print(f"{username}: {message}")
             else:
-                print("Peer disconnected")
+                print(f"{username} disconnected")
                 break
     except Exception as e:
         print(f"Error receiving message: {e}")
@@ -49,26 +40,19 @@ def handle_incoming_messages(peer_socket):
         peer_sockets.remove(peer_socket)
     peer_socket.close()
 
-
 ###################
 # Function description:
-# Tries to connect to a peer at a specified address (hostname, port) with password validation.
+# Tries to connect to a peer at a specified address (hostname, port).
 ###################
-def connect_to_peer(peer_address, retries=3):
+def connect_to_peer(peer_address, username, retries=3):
     for attempt in range(retries):
         try:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             peer_socket.connect(peer_address)
 
-            # Send password for authentication
-            peer_socket.send(chat_password.encode())
-            auth_response = peer_socket.recv(1024).decode()
-            if auth_response != "AUTH_SUCCESS":
-                print("Peer rejected connection due to password mismatch.")
-                peer_socket.close()
-                return None
-
-            print(f"Connected and authenticated with {peer_address}")
+            # Send username upon connection
+            peer_socket.send(username.encode())
+            print(f"Connected to {peer_address}")
             with peer_lock:
                 peer_sockets.append(peer_socket)
             threading.Thread(target=handle_incoming_messages, args=(peer_socket,), daemon=True).start()
@@ -86,7 +70,7 @@ def connect_to_peer(peer_address, retries=3):
 
 ###################
 # Function description:
-# Listen for incoming connections and validate passwords.
+# Listen for incoming connections
 ###################
 def listen_for_peers(port=1000):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -108,12 +92,9 @@ def listen_for_peers(port=1000):
         # Handle the connection in a separate thread
         threading.Thread(target=handle_incoming_messages, args=(peer_socket,), daemon=True).start()
 
-
-
-
 ###################
 # Function Description:
-# Sends the messages to the peers
+# Sends messages to all peers
 ###################
 def send_message_to_peers(message):
     with peer_lock:
@@ -126,31 +107,51 @@ def send_message_to_peers(message):
                 peer_sockets.remove(peer_socket)
                 peer_socket.close()
 
+###################
+# Function Description:
+# Sends a private message to a specific peer
+###################
+def send_private_message(message, target_peer):
+    try:
+        target_peer.send(message.encode())
+    except Exception as e:
+        print(f"Error sending private message: {e}")
 
 ###################
+# Function Description:
+# Sends a private message to a specific peer (one-on-one)
 ###################
-# Function description:
-# Starts the chat system.
+def send_private_message_to_peer(target_username, message):
+    target_peer = None
+    for peer_socket, peer_name in peer_usernames.items():
+        if peer_name == target_username:
+            target_peer = peer_socket
+            break
+    
+    if target_peer:
+        send_private_message(message, target_peer)
+    else:
+        print(f"Could not find peer with username {target_username}")
+
+###################
+# Starts the chat system
 ###################
 def start_chat():
-    global chat_password
-
-    print("Set a password for this chat:")
-    chat_password = input("Password: ").strip()
-
+    
     print("Enter your username:")
     username = input().strip()
 
     print("Connecting to peers...")
     global peers
     for peer_address in peers:
-        peer_socket = connect_to_peer(peer_address)
+        peer_socket = connect_to_peer(peer_address, username)
         if peer_socket:
             print(f"Connected to peer at {peer_address}")
 
     # If the peers are connected, begin communication
     while True:
         message = input(f"{username}: ")
+        
         if message.lower() == 'exit':
             print(f"{username} has left the chat.")
             break
@@ -161,21 +162,26 @@ def start_chat():
             username = input().strip()
             continue
 
+        # to message one-on-one with a peer
+        elif message.lower().startswith('msg'):
+            _, target_username, *msg_parts = message.split()
+            private_message = " ".join(msg_parts)
+            send_private_message_to_peer(target_username, private_message)
+            continue
+        
         send_message_to_peers(f"{username}: {message}\n")
 
-
 ###################
-# Main function to start the chat application.
+# Main function to start the chat application
 ###################
 def main():
     global peers
 
-    # limits to only 4 peers in comm.
-    peers = [(('localhost', 1002),'localhost', 1001), ('localhost', 1002), ('localhost', 1003)]
+    # Set peers for demonstration
+    peers = [('localhost', 1000), ('localhost', 1001), ('localhost', 1002), ('localhost', 1003)]
     threading.Thread(target=listen_for_peers, daemon=True).start()
     time.sleep(2)
     start_chat()
-
 
 if __name__ == "__main__":
     main()
