@@ -1,7 +1,7 @@
-# Peer-to-Peer Chat Application
+# Peer-to-Peer Chat System
 
 ## Overview
-This is a simple peer-to-peer chat application implemented using Python's `socket` and `threading` modules. It allows users to connect to multiple peers, send public messages, and send private messages to specific users. The application features multi-threaded communication to handle incoming messages and connections simultaneously.
+This is a simple peer-to-peer chat system implemented using Python's `socket` and `threading` modules. It allows users to connect to multiple peers, send public messages, and send private messages to specific users. The application features multi-threaded communication to handle incoming messages and connections simultaneously.
 
 ## Features
 - **Send Messages to All Peers:** Broadcast messages to all connected peers.
