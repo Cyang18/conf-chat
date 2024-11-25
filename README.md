@@ -5,7 +5,16 @@ This is a simple peer-to-peer chat application implemented using Python's `socke
 ## Features
 - **Send Messages to All Peers:** Broadcast messages to all connected peers.
 - **Private Messaging:** Send private messages to specific users.
+   - By using 'msg'
+   ```Example:
+   msg 'username' 'message'
+   ```
 - **Dynamic Usernames:** Users can choose or rename their usernames at any time.
+   - By using 'rename'
+   ```Example
+   rename
+   Brian
+   ```
 - **Peer Tracker:** A separate tracker script (`tracker.py`) keeps track of connected peers and their usernames.
 
 ## Architecture
@@ -25,7 +34,7 @@ This chat application uses a **decentralized peer-to-peer (P2P) architecture**, 
    - When the application starts, it attempts to connect to the specified peers defined in the `peers` list. If a connection is successful, it sends the username to the peer.
    
 2. **Listening for Peers:**
-   - A server thread continuously listens for incoming connections from other peers on specified ports. Once a connection is accepted, a new thread is spawned to handle incoming messages from the peer.
+   - The server thread continuously listens for incoming connections from other peers on specified ports. Once a connection is accepted, a new thread is spawned to handle incoming messages from the peer.
 
 3. **Messaging:**
    - Users can send messages to all connected peers or direct messages to specific peers. Messages are sent over the peer sockets and broadcasted or delivered privately based on the type of message.
