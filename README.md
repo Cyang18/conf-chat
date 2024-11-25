@@ -1,5 +1,6 @@
 # Peer-to-Peer Chat Application
 
+## Overview
 This is a simple peer-to-peer chat application implemented using Python's `socket` and `threading` modules. It allows users to connect to multiple peers, send public messages, and send private messages to specific users. The application features multi-threaded communication to handle incoming messages and connections simultaneously.
 
 ## Features
@@ -45,7 +46,7 @@ This chat application uses a **decentralized peer-to-peer (P2P) architecture**, 
 
 ## Requirements
 
-- Python 3.x
+- Python 3.9.18 (or higher)
 
 ## Setup
 
@@ -63,11 +64,15 @@ This chat application uses a **decentralized peer-to-peer (P2P) architecture**, 
    This script will listen for incoming connections on a specified port and display the usernames and addresses of connected peers.
 
 3. **Run the Chat Application:**
-   To start the chat application, run the following command:
+   To start the chat application, run the following command on the terminal:
    ```bash
    python p2p.py
    ```
-
-4. **Configuration:**
+   Note: To create multiple peers, create mutlple instances on the terminal.
+   
+5. **Configuration:**
    - You can modify the `peers` list in the `main()` function of `p2p.py` to include other peer addresses and ports for connecting to additional peers.
 
+## Developed by
+- Chris Yang
+- Jedidiah Pollard
