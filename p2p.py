@@ -52,14 +52,14 @@ def connect_to_peer(peer_address, username, retries=3):
 
             # Send username upon connection
             peer_socket.send(username.encode())
-            print(f"Connected to {peer_address}")
+            #print(f"Connected to {peer_address}")
             with peer_lock:
                 peer_sockets.append(peer_socket)
             threading.Thread(target=handle_incoming_messages, args=(peer_socket,), daemon=True).start()
             return peer_socket
 
         except ConnectionRefusedError:
-            print(f"Connection to {peer_address} failed. Retrying... ({attempt + 1}/{retries})")
+            #print(f"Connection to {peer_address} failed. Retrying... ({attempt + 1}/{retries})")
             time.sleep(3)
         except Exception as e:
             print(f"Unexpected error: {e}")
@@ -87,7 +87,7 @@ def listen_for_peers(port=1000):
 
     while True:
         peer_socket, peer_address = server.accept()
-        print(f"Connection attempt from {peer_address}")
+        #print(f"Connection attempt from {peer_address}")
 
         # Handle the connection in a separate thread
         threading.Thread(target=handle_incoming_messages, args=(peer_socket,), daemon=True).start()
@@ -141,12 +141,12 @@ def start_chat():
     print("Enter your username:")
     username = input().strip()
 
-    print("Connecting to peers...")
+    #print("Connecting to peers...")
     global peers
     for peer_address in peers:
         peer_socket = connect_to_peer(peer_address, username)
-        if peer_socket:
-            print(f"Connected to peer at {peer_address}")
+        #if peer_socket:
+            #print(f"Connected to peer at {peer_address}")
 
     # If the peers are connected, begin communication
     while True:
